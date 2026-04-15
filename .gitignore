@@ -1,0 +1,17 @@
+# AI Code Review Pro - Ignore List
+
+# Student Data (Privacy Protection)
+docs/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Workspace Settings
+.vscode/
+.gemini/
+.idea/
+
+# Local Storage (if any local temp files exist)
+*.log
+node_modules/
