@@ -126,11 +126,34 @@ header {
   border-radius: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  opacity: 1;
+}
+
+#settings-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+#settings-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+#settings-btn i {
+  color: white !important;
 }
 
 /* Custom styles for upload area */
@@ -156,15 +179,22 @@ header {
 .results-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 1.5rem;
+  margin-top: 2rem;
 }
 
 .result-card {
   background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
   border-radius: 1.5rem;
   padding: 1.5rem;
   border: 1px solid var(--glass-border);
+  transition: transform 0.3s ease;
+}
+
+.result-card:hover {
+  transform: scale(1.02);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .grade-badge {
