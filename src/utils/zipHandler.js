@@ -23,7 +23,6 @@ export async function extractFilesFromZip(zipFile) {
 const BLACKLISTED_PATH_KEYWORDS = [
   'papercut_style',
   'pixcel_style',
-  'docs',
   '__macosx',
   '.git',
   '.ds_store'

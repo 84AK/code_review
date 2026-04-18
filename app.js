@@ -106,12 +106,19 @@ fileInput.addEventListener('change', (e) => {
 // --- Core Logic ---
 async function handleFiles(files) {
   const allFiles = Array.from(files);
-  const targetFiles = allFiles.filter(f => f.name.endsWith('.zip') || f.name.endsWith('.html'));
+  // 확장자 대소문자 무시 필터링
+  const targetFiles = allFiles.filter(f => {
+    const name = f.name.toLowerCase();
+    return name.endsWith('.zip') || name.endsWith('.html');
+  });
   
   if (targetFiles.length === 0) {
-    alert('.zip 또는 .html 파일을 업로드해주세요.');
+    alert('.zip 또는 .html 파일을 업로드하거나 드래그해주세요.');
     return;
   }
+
+  // 최신 카테고리 상태 확인
+  const selectedCategory = document.querySelector('input[name="category"]:checked')?.value || currentCategory;
 
   if (!apiKey) {
     alert('AI 분석을 위해 API 키를 먼저 설정해주세요.');
@@ -130,22 +137,25 @@ async function handleFiles(files) {
       updateProgress(processed, targetFiles.length, `${file.name} 분석 중...`);
       
       let studentFiles = {};
-      if (file.name.endsWith('.zip')) {
+      const isZip = file.name.toLowerCase().endsWith('.zip');
+
+      if (isZip) {
         const extracted = await extractFilesFromZip(file);
-        studentFiles = parseStudentFiles(extracted, currentCategory);
+        studentFiles = parseStudentFiles(extracted, selectedCategory);
       } else {
         // 단일 HTML 파일 처리
         const content = await file.text();
-        studentFiles = parseStudentFiles({ [file.name]: content }, currentCategory);
+        // 경로 구분자 문제 방지를 위해 파일명만 전달
+        studentFiles = parseStudentFiles({ [file.name]: content }, selectedCategory);
       }
 
-      const reference = referenceCodes[currentCategory];
-      const evaluation = await evaluateCode(apiKey, currentCategory, reference, studentFiles);
+      const reference = referenceCodes[selectedCategory];
+      const evaluation = await evaluateCode(apiKey, selectedCategory, reference, studentFiles);
       
       results.push({
         id: Date.now() + Math.random(),
         filename: file.name,
-        category: currentCategory,
+        category: selectedCategory,
         timestamp: new Date().toLocaleString(),
         ...evaluation
       });
@@ -157,11 +167,11 @@ async function handleFiles(files) {
       console.error("Analysis Error:", error);
       results.push({
         filename: file.name,
-        category: currentCategory,
+        category: selectedCategory,
         score: 0,
         grade: 'F',
         analysis: '분석 중 기술적 오류 발생',
-        feedback: `[시스템 오류]\n${error.message}\n\n도움말: API 키가 유효한지, 혹은 파일이 손상되지 않았는지 확인해주세요.`
+        feedback: `[시스템 오류]\n${error.message}\n\n도움말: API 키가 유효한지, 혹은 파일 형식이 올바른지 확인해주세요.`
       });
       renderResults();
       processed++;
