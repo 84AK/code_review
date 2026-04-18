@@ -47,17 +47,23 @@ const results = { ISTJ: { ... }, ... };
   },
   POSE: {
     description: "Teachable Machine Pose 모델을 활용한 웹 게임. 캠 제어, 포즈 인식, 게임 로직 포함.",
-    files: {
-      "airplane_game.html": `<!-- Pose Fly Game with Canvas -->
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
-<script>
-  async function loadModel() { ... }
-  async function startPoseCamera() { ... }
-  function gameUpdate() { ... } // Canvas animation loop
-  // Pose Controller Module + Game Logic
-</script>`,
-      "car_racing_game.html": `<!-- Top-view Car Racing Game -->
-// Similar to airplane_game but with lane changing logic (Left/Right poses only)`
-    }
+    baselines: {
+      airplane: {
+        title: "Pose Flyer (비행기 게임)",
+        features: ["장애물 회피", "점수/목숨 시스템", "Canvas 기반 비행기 애니메이션", "Teachable Machine 연동"],
+        structure: "requestAnimationFrame 루프, CustomEvent('pose:direction') 활용 방향 제어"
+      },
+      car: {
+        title: "Pose Racer (자동차 레이싱)",
+        features: ["차선 변경 로직", "장애물(적 차) 스폰", "3개 차선 고정", "Left/Right 포즈 중심 제어"],
+        structure: "laneX 함수를 통한 좌표 계산, 쿨다운 시스템(canChangeLane)"
+      },
+      snake: {
+        title: "Pose Snake (스네이크 게임)",
+        features: ["그리드 기반 이동", "먹이 스폰", "자기 충돌 검사", "4방향 포즈 제어"],
+        structure: "setInterval 또는 setTimeout 기반 고정 속도 루프"
+      }
+    },
+    evaluation_rules: "제출된 코드가 위 3가지 베이스라인 샘플(airplane_game.html, car_racing_game.html, snake_game.html)과 내용이 거의 동일하거나 아무런 수정 없이 그대로 제출된 경우, '독창성' 감점 요인으로 반영하고 낮은 등급(C~D)을 부여할 것. 창의적인 UI 변경, 새로운 기능 추가, 로직 개선이 있을 경우에만 높은 점수를 부여함."
   }
 };

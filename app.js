@@ -105,8 +105,13 @@ fileInput.addEventListener('change', (e) => {
 
 // --- Core Logic ---
 async function handleFiles(files) {
-  const zipFiles = Array.from(files).filter(f => f.name.endsWith('.zip'));
-  if (zipFiles.length === 0) return;
+  const allFiles = Array.from(files);
+  const targetFiles = allFiles.filter(f => f.name.endsWith('.zip') || f.name.endsWith('.html'));
+  
+  if (targetFiles.length === 0) {
+    alert('.zip 또는 .html 파일을 업로드해주세요.');
+    return;
+  }
 
   if (!apiKey) {
     alert('AI 분석을 위해 API 키를 먼저 설정해주세요.');
@@ -114,21 +119,28 @@ async function handleFiles(files) {
     return;
   }
 
-  fileCountEl.textContent = zipFiles.length;
+  fileCountEl.textContent = targetFiles.length;
   statusPlaceholder.style.display = 'none';
   progressContainer.style.display = 'block';
   
   let processed = 0;
   
-  for (const file of zipFiles) {
+  for (const file of targetFiles) {
     try {
-      updateProgress(processed, zipFiles.length, `${file.name} 분석 중...`);
+      updateProgress(processed, targetFiles.length, `${file.name} 분석 중...`);
       
-      const extracted = await extractFilesFromZip(file);
-      const studentCode = parseStudentFiles(extracted, currentCategory);
+      let studentFiles = {};
+      if (file.name.endsWith('.zip')) {
+        const extracted = await extractFilesFromZip(file);
+        studentFiles = parseStudentFiles(extracted, currentCategory);
+      } else {
+        // 단일 HTML 파일 처리
+        const content = await file.text();
+        studentFiles = parseStudentFiles({ [file.name]: content }, currentCategory);
+      }
+
       const reference = referenceCodes[currentCategory];
-      
-      const evaluation = await evaluateCode(apiKey, currentCategory, reference, studentCode);
+      const evaluation = await evaluateCode(apiKey, currentCategory, reference, studentFiles);
       
       results.push({
         id: Date.now() + Math.random(),
@@ -156,7 +168,7 @@ async function handleFiles(files) {
     }
   }
   
-  updateProgress(processed, zipFiles.length, '분석 완료');
+  updateProgress(processed, targetFiles.length, '분석 완료');
 }
 
 function updateProgress(current, total, text) {
