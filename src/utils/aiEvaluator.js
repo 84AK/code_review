@@ -58,11 +58,25 @@ ${JSON.stringify(studentCode)}
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || "AI 분석 중 오류가 발생했습니다.");
+    const errorBody = await response.json();
+    if (response.status === 429) {
+      throw new Error("RATE_LIMIT_EXCEEDED");
+    }
+    throw new Error(errorBody.error?.message || "AI 분석 중 오류가 발생했습니다.");
   }
 
   const data = await response.json();
-  const resultText = data.candidates[0].content.parts[0].text;
-  return JSON.parse(resultText);
+  let resultText = data.candidates[0].content.parts[0].text;
+  
+  // JSON 추출 보강: 마크다운 코드 블록 제거 및 순수 JSON 영역만 추출
+  try {
+    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      resultText = jsonMatch[0];
+    }
+    return JSON.parse(resultText);
+  } catch (e) {
+    console.error("JSON Parsing Error Candidate:", resultText);
+    throw new Error("AI 응답 형식 오류 (JSON 파싱 불가)");
+  }
 }

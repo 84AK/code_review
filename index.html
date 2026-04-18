@@ -108,10 +108,11 @@
       <h2><i data-lucide="settings"></i> 설정</h2>
       <div style="margin: 2rem 0;">
         <label style="display: block; margin-bottom: 0.5rem; color: var(--text-dim);">Gemini API Key</label>
-        <input type="password" id="api-key-input" style="width: 100%; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;" placeholder="API 키를 입력하세요">
-        <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem;">입력한 키는 브라우저에만 안전하게 저장됩니다.</p>
+        <input type="password" id="api-key-input" style="width: 100%; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;" placeholder="AI Studio에서 발급받은 키를 입력하세요.">
+        <div id="api-key-status" style="margin-top: 0.5rem; font-size: 0.85rem; display: none;"></div>
+        <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem;">입력한 키는 브라우저에만 안전하게 저장됩니다.</p>
+        <button class="btn-primary" id="save-api-key" style="margin-top: 2rem; width: 100%;">저장하기</button>
       </div>
-      <button id="save-settings" class="btn-primary" style="width: 100%;">저장하기</button>
     </div>
   </div>
 

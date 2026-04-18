@@ -25,7 +25,7 @@ const categoryInputs = document.querySelectorAll('input[name="category"]');
 const settingsBtn = document.getElementById('settings-btn');
 const modalBackdrop = document.getElementById('modal-backdrop');
 const apiKeyInput = document.getElementById('api-key-input');
-const saveSettingsBtn = document.getElementById('save-settings');
+const saveSettingsBtn = document.getElementById('save-api-key');
 const clearBtn = document.getElementById('clear-btn');
 const exportBtn = document.getElementById('export-btn');
 
@@ -59,11 +59,50 @@ modalBackdrop.addEventListener('click', (e) => {
   if (e.target === modalBackdrop) hideModal();
 });
 
-saveSettingsBtn.addEventListener('click', () => {
-  apiKey = apiKeyInput.value.trim();
-  localStorage.setItem('gemini_api_key', apiKey);
-  hideModal();
+const apiKeyStatus = document.getElementById('api-key-status');
+
+saveSettingsBtn.addEventListener('click', async () => {
+  const newKey = apiKeyInput.value.trim();
+  if (!newKey) {
+    alert('API 키를 입력해주세요.');
+    return;
+  }
+
+  // 검증 알림
+  apiKeyStatus.style.display = 'block';
+  apiKeyStatus.style.color = 'var(--text-dim)';
+  apiKeyStatus.textContent = '키 요효성 검증 중...';
+  saveSettingsBtn.disabled = true;
+
+  const isValid = await validateApiKey(newKey);
+
+  if (isValid) {
+    apiKey = newKey;
+    localStorage.setItem('gemini_api_key', apiKey);
+    apiKeyStatus.style.color = '#4ade80';
+    apiKeyStatus.textContent = '✨ 유효한 키입니다. 저장되었습니다.';
+    
+    setTimeout(() => {
+      hideModal();
+      saveSettingsBtn.disabled = false;
+      apiKeyStatus.style.display = 'none';
+    }, 1500);
+  } else {
+    apiKeyStatus.style.color = '#f87171';
+    apiKeyStatus.textContent = '❌ 유효하지 않은 키이거나 할당량이 초과되었습니다.';
+    saveSettingsBtn.disabled = false;
+  }
 });
+
+async function validateApiKey(key) {
+  try {
+    // 가장 가벼운 API 호출로 키 유효성 확인 (모델 목록 조회)
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    return response.ok;
+  } catch (e) {
+    return false;
+  }
+}
 
 clearBtn.addEventListener('click', () => {
   if (!confirm('모든 분석 결과를 삭제하시겠습니까?')) return;
@@ -106,7 +145,6 @@ fileInput.addEventListener('change', (e) => {
 // --- Core Logic ---
 async function handleFiles(files) {
   const allFiles = Array.from(files);
-  // 확장자 대소문자 무시 필터링
   const targetFiles = allFiles.filter(f => {
     const name = f.name.toLowerCase();
     return name.endsWith('.zip') || name.endsWith('.html');
@@ -117,7 +155,6 @@ async function handleFiles(files) {
     return;
   }
 
-  // 최신 카테고리 상태 확인
   const selectedCategory = document.querySelector('input[name="category"]:checked')?.value || currentCategory;
 
   if (!apiKey) {
@@ -131,58 +168,103 @@ async function handleFiles(files) {
   progressContainer.style.display = 'block';
   
   let processed = 0;
+  const total = targetFiles.length;
   
-  for (const file of targetFiles) {
-    try {
-      updateProgress(processed, targetFiles.length, `${file.name} 분석 중...`);
-      
-      let studentFiles = {};
-      const isZip = file.name.toLowerCase().endsWith('.zip');
+  // 저속 안정 모드 (동시 처리 1개, 지연 시간 강화)
+  const CONCURRENCY = 1; 
+  const queue = [...targetFiles];
+  
+  async function processQueue() {
+    while (queue.length > 0) {
+      const file = queue.shift();
+      if (!file) continue;
 
-      if (isZip) {
-        const extracted = await extractFilesFromZip(file);
-        studentFiles = parseStudentFiles(extracted, selectedCategory);
-      } else {
-        // 단일 HTML 파일 처리
-        const content = await file.text();
-        // 경로 구분자 문제 방지를 위해 파일명만 전달
-        studentFiles = parseStudentFiles({ [file.name]: content }, selectedCategory);
+      try {
+        updateProgress(processed, total, `(${processed + 1}/${total}) ${file.name} 분석 중...`);
+        
+        // 이전 분석과의 간격 (3초 대기)
+        if (processed > 0) await new Promise(r => setTimeout(r, 3000));
+        
+        let studentFiles = {};
+        const isZip = file.name.toLowerCase().endsWith('.zip');
+
+        if (isZip) {
+          const extracted = await extractFilesFromZip(file);
+          studentFiles = parseStudentFiles(extracted, selectedCategory);
+        } else {
+          const content = await file.text();
+          studentFiles = parseStudentFiles({ [file.name]: content }, selectedCategory);
+        }
+
+        const reference = referenceCodes[selectedCategory];
+        
+        // 재시도 로직 추가
+        let evaluation = null;
+        let retries = 0;
+        const maxRetries = 3;
+
+        while (retries < maxRetries) {
+          try {
+            evaluation = await evaluateCode(apiKey, selectedCategory, reference, studentFiles);
+            break; // 성공 시 루프 탈출
+          } catch (e) {
+            if (e.message === "RATE_LIMIT_EXCEEDED" && retries < maxRetries - 1) {
+              const waitTime = (retries + 1) * 3000; // 3초, 6초... 순차적 대기
+              updateProgress(processed, total, `(${processed + 1}/${total}) 속도 제한 발생. ${waitTime/1000}초 후 재시도...`);
+              await new Promise(r => setTimeout(r, waitTime));
+              retries++;
+            } else {
+              throw e; // 다른 에러거나 재시도 횟수 초과 시 밖으로 던짐
+            }
+          }
+        }
+        
+        results.push({
+          id: Date.now() + Math.random(),
+          filename: file.name,
+          category: selectedCategory,
+          timestamp: new Date().toLocaleString(),
+          ...evaluation
+        });
+        
+        saveToStorage();
+        renderResults();
+        
+      } catch (error) {
+        console.error("Analysis Error:", error);
+        let errorMsg = error.message;
+        if (errorMsg === "RATE_LIMIT_EXCEEDED") errorMsg = "API 일일 사용량 또는 속도 제한을 초과했습니다.";
+        
+        results.push({
+          id: Date.now() + Math.random(),
+          filename: file.name,
+          category: selectedCategory,
+          score: 0,
+          grade: 'F',
+          analysis: '기술적 분석 오류',
+          feedback: `[시스템 오류]\n${errorMsg}\n\n도움말: 학생의 코드는 정상일 수 있으나 분석 서버 부하로 실패했습니다. 잠시 후 해당 파일만 다시 시도해 보세요.`
+        });
+        renderResults();
+      } finally {
+        processed++;
+        updateProgress(processed, total, processed === total ? '모든 분석 완료' : `(${processed}/${total}) 분석 중...`);
       }
-
-      const reference = referenceCodes[selectedCategory];
-      const evaluation = await evaluateCode(apiKey, selectedCategory, reference, studentFiles);
       
-      results.push({
-        id: Date.now() + Math.random(),
-        filename: file.name,
-        category: selectedCategory,
-        timestamp: new Date().toLocaleString(),
-        ...evaluation
-      });
-      
-      saveToStorage();
-      renderResults();
-      processed++;
-    } catch (error) {
-      console.error("Analysis Error:", error);
-      results.push({
-        filename: file.name,
-        category: selectedCategory,
-        score: 0,
-        grade: 'F',
-        analysis: '분석 중 기술적 오류 발생',
-        feedback: `[시스템 오류]\n${error.message}\n\n도움말: API 키가 유효한지, 혹은 파일 형식이 올바른지 확인해주세요.`
-      });
-      renderResults();
-      processed++;
+      // API 속도 제한 방지를 위한 미세한 지연
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
-  
-  updateProgress(processed, targetFiles.length, '분석 완료');
+
+  // 병렬 실행 시작
+  const workers = Array(Math.min(CONCURRENCY, queue.length))
+    .fill(null)
+    .map(() => processQueue());
+
+  await Promise.all(workers);
 }
 
 function updateProgress(current, total, text) {
-  const percent = Math.round((current / total) * 100);
+  const percent = total > 0 ? Math.round((current / total) * 100) : 0;
   progressBar.style.width = `${percent}%`;
   progressPercent.textContent = `${percent}%`;
   statusText.textContent = text;
