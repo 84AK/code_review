@@ -51,19 +51,22 @@ const results = { ISTJ: { ... }, ... };
       airplane: {
         title: "Pose Flyer (비행기 게임)",
         features: ["장애물 회피", "점수/목숨 시스템", "Canvas 기반 비행기 애니메이션", "Teachable Machine 연동"],
-        structure: "requestAnimationFrame 루프, CustomEvent('pose:direction') 활용 방향 제어"
+        structure: "requestAnimationFrame 루프, CustomEvent('pose:direction') 활용 방향 제어",
+        source_hint: "Outfit 폰트 사용, ✈️ 이모지 아이콘, 'Pose Flyer' 타이틀, requestAnimationFrame 기반 게임 루프, tmPose 라이브러리 연동 코드 포함."
       },
       car: {
         title: "Pose Racer (자동차 레이싱)",
         features: ["차선 변경 로직", "장애물(적 차) 스폰", "3개 차선 고정", "Left/Right 포즈 중심 제어"],
-        structure: "laneX 함수를 통한 좌표 계산, 쿨다운 시스템(canChangeLane)"
+        structure: "laneX 함수를 통한 좌표 계산, 쿨다운 시스템(canChangeLane)",
+        source_hint: "🚗 이모지 아이콘, 'Pose Racer' 타이틀, laneX(lane) 함수를 통한 차선 위치 계산(ROAD_L, LANE_W 상수 활용) 로직 포함."
       },
       snake: {
         title: "Pose Snake (스네이크 게임)",
         features: ["그리드 기반 이동", "먹이 스폰", "자기 충돌 검사", "4방향 포즈 제어"],
-        structure: "setInterval 또는 setTimeout 기반 고정 속도 루프"
+        structure: "setInterval 또는 setTimeout 기반 고정 속도 루프",
+        source_hint: "🐍 이모지 아이콘, 'Pose Snake' 타이틀, CELL/COLS/ROWS 상수를 이용한 그리드 계산, roundRect 함수를 이용한 뱀 그래픽 구현 코드 포함."
       }
     },
-    evaluation_rules: "제출된 코드가 위 3가지 베이스라인 샘플(airplane_game.html, car_racing_game.html, snake_game.html)과 내용이 거의 동일하거나 아무런 수정 없이 그대로 제출된 경우, '독창성' 감점 요인으로 반영하고 낮은 등급(C~D)을 부여할 것. 창의적인 UI 변경, 새로운 기능 추가, 로직 개선이 있을 경우에만 높은 점수를 부여함."
+    evaluation_rules: "제출된 코드가 위에 설명된 3가지 베이스라인 샘플(airplane_game.html, car_racing_game.html, snake_game.html)의 핵심 로직(함수명, 변수명, UI 구조)과 90% 이상 일치하면 '단순 복제'로 판단하여 C~D 등급을 부여하세요. 특히 source_hint에 명시된 독특한 함수명이나 UI 요소가 그대로 남아있는지 중점적으로 확인하십시오."
   }
 };

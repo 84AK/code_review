@@ -8,7 +8,7 @@ import { evaluateCode } from './src/utils/aiEvaluator.js';
 
 // --- State ---
 let apiKey = localStorage.getItem('gemini_api_key') || '';
-let currentCategory = 'MBTI';
+let currentCategory = localStorage.getItem('last_category') || 'MBTI';
 let results = [];
 
 // --- UI Elements ---
@@ -31,19 +31,36 @@ const exportBtn = document.getElementById('export-btn');
 
 // --- Initialization ---
 function init() {
-  if (!apiKey) {
-    showModal();
-  }
-  apiKeyInput.value = apiKey;
-  
-  // Load saved results
-  const savedResults = localStorage.getItem('code_review_results');
-  if (savedResults) {
-    results = JSON.parse(savedResults);
-    renderResults();
-    if (results.length > 0) {
-      statusPlaceholder.style.display = 'none';
+  try {
+    if (!apiKey) {
+      showModal();
     }
+    apiKeyInput.value = apiKey;
+    
+    // 저장된 카테고리 UI 반영
+    const savedCategory = localStorage.getItem('last_category') || 'MBTI';
+    const targetRadio = document.querySelector(`input[name="category"][value="${savedCategory}"]`);
+    if (targetRadio) {
+      targetRadio.checked = true;
+      currentCategory = savedCategory;
+    }
+    
+    // Load saved results
+    const savedResults = localStorage.getItem('code_review_results');
+    if (savedResults) {
+      results = JSON.parse(savedResults);
+      renderResults();
+      if (results.length > 0) {
+        statusPlaceholder.style.display = 'none';
+      }
+    }
+    
+    // Lucide 아이콘 렌더링 (2026 표준)
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  } catch (e) {
+    console.error("Initialization Error:", e);
   }
 }
 
@@ -51,6 +68,7 @@ function init() {
 categoryInputs.forEach(input => {
   input.addEventListener('change', (e) => {
     currentCategory = e.target.value;
+    localStorage.setItem('last_category', currentCategory);
   });
 });
 
@@ -144,6 +162,7 @@ fileInput.addEventListener('change', (e) => {
 
 // --- Core Logic ---
 async function handleFiles(files) {
+  console.log("HandleFiles triggered:", files.length, "files");
   const allFiles = Array.from(files);
   const targetFiles = allFiles.filter(f => {
     const name = f.name.toLowerCase();
@@ -156,6 +175,7 @@ async function handleFiles(files) {
   }
 
   const selectedCategory = document.querySelector('input[name="category"]:checked')?.value || currentCategory;
+  console.log("Current Mode:", selectedCategory);
 
   if (!apiKey) {
     alert('AI 분석을 위해 API 키를 먼저 설정해주세요.');
@@ -206,15 +226,17 @@ async function handleFiles(files) {
         while (retries < maxRetries) {
           try {
             evaluation = await evaluateCode(apiKey, selectedCategory, reference, studentFiles);
-            break; // 성공 시 루프 탈출
+            break; 
           } catch (e) {
-            if (e.message === "RATE_LIMIT_EXCEEDED" && retries < maxRetries - 1) {
-              const waitTime = (retries + 1) * 3000; // 3초, 6초... 순차적 대기
-              updateProgress(processed, total, `(${processed + 1}/${total}) 속도 제한 발생. ${waitTime/1000}초 후 재시도...`);
+            const isRetryable = e.message === "RATE_LIMIT_EXCEEDED" || e.name === "AbortError";
+            if (isRetryable && retries < maxRetries - 1) {
+              const waitTime = (retries + 1) * 3000;
+              const reason = e.name === "AbortError" ? "응답 지연" : "속도 제한";
+              updateProgress(processed, total, `(${processed + 1}/${total}) ${reason} 발생. ${waitTime/1000}초 후 재시도...`);
               await new Promise(r => setTimeout(r, waitTime));
               retries++;
             } else {
-              throw e; // 다른 에러거나 재시도 횟수 초과 시 밖으로 던짐
+              throw e; 
             }
           }
         }
@@ -227,13 +249,18 @@ async function handleFiles(files) {
           ...evaluation
         });
         
-        saveToStorage();
+        try {
+          saveToStorage();
+        } catch (e) {
+          console.warn("Storage quota exceeded, continuing without saving to local storage.");
+        }
         renderResults();
         
       } catch (error) {
         console.error("Analysis Error:", error);
         let errorMsg = error.message;
         if (errorMsg === "RATE_LIMIT_EXCEEDED") errorMsg = "API 일일 사용량 또는 속도 제한을 초과했습니다.";
+        if (error.name === "AbortError") errorMsg = "AI 응답 시간이 너무 길어 중단되었습니다 (30초 초과).";
         
         results.push({
           id: Date.now() + Math.random(),

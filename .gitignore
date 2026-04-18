@@ -2,6 +2,11 @@
 
 # Student Data (Privacy Protection)
 docs/
+# 하지만 정답 샘플은 허용
+!docs/extracted_pose/
+!docs/extracted_pose/game_sample/
+!docs/extracted_pose/game_sample/*.html
+!docs/basic.zip
 
 # System Files
 .DS_Store

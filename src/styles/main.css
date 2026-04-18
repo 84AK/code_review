@@ -210,6 +210,35 @@ header {
 .grade-C { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 .grade-D { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
+/* Category Selection Styling */
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1.25rem;
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
+}
+
+.category-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 라디오 버튼이 선택되었을 때의 스타일 (CSS :has 셀렉터 사용 - 2026 표준) */
+.category-option:has(input:checked) {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.category-option input:checked + div > div:first-child {
+  color: var(--primary);
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .card-upload, .card-category, .card-stats, .card-status {

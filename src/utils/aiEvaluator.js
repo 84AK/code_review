@@ -40,22 +40,28 @@ ${JSON.stringify(studentCode)}
 
 분석을 시작해주세요.`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: systemPrompt + "\n\n" + userPrompt
-        }]
-      }],
-      generationConfig: {
-        response_mime_type: "application/json"
-      }
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: systemPrompt + "\n\n" + userPrompt
+          }]
+        }],
+        generationConfig: {
+          response_mime_type: "application/json"
+        }
+      })
+    });
+    clearTimeout(timeoutId);
 
   if (!response.ok) {
     const errorBody = await response.json();
