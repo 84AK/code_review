@@ -4,7 +4,7 @@
  */
 
 export async function evaluateCode(apiKey, category, referenceCode, studentCode) {
-  const model = "gemini-2.0-flash"; 
+  const model = "gemini-2.5-flash"; 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const systemPrompt = `당신은 시니어 프론트엔드 개발자이자 교육 전문가입니다. 
